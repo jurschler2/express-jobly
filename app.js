@@ -13,6 +13,9 @@ app.use(express.json());
 // add logging system
 app.use(morgan("tiny"));
 
+const companiesRoutes = require("./routes/companies");
+app.use("/companies", companiesRoutes);
+
 /** 404 handler */
 
 app.use(function(req, res, next) {
