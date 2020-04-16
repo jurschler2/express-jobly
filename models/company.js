@@ -2,6 +2,8 @@
 
 const db = require("../db");
 const ExpressError = require("../helpers/expressError");
+const sqlForPartialUpdate = require("../helpers/partialUpdate");
+const {BAD_REQUEST_STATUS, NOT_FOUND_STATUS} = require("../config");
 
 /** Company */
 
@@ -45,7 +47,7 @@ class Company {
     const company = results.rows[0];
 
     if (results.rows.length === 0) {
-      throw new ExpressError(`No such company: ${handle}`, 400);
+      throw new ExpressError(`No such company: ${handle}`, NOT_FOUND_STATUS);
     }
 
     return new Company(company);
@@ -64,60 +66,65 @@ class Company {
     );
 
     if (result.rows[0].length === 0) {
-      throw new ExpressError(`Could not create company: ${handle}`, 400);
+      throw new ExpressError(`Could not create company: ${handle}`, BAD_REQUEST_STATUS);
     }
 
     return new Company(result.rows[0]);
   }
 
   /** Searches the companies in the database and returns companies who contain
-  *** the search string in handle or name                                     */
+  *** the search string in name and/or by a min or max of employees             */
 
- static async search(str) {
+ static async search(str, min, max) {
 
   const results = await db.query(
     `SELECT handle, name
      FROM companies
-     WHERE UPPER(name) LIKE $1
+     WHERE UPPER(name) LIKE $1 AND num_employees BETWEEN $2 AND $3
      ORDER BY name`,
-     [`%${str.toUpperCase()}%`]
+     [`%${str.toUpperCase()}%`, min, max]
   );
   return results.rows;
 
   }
 
-/** Filters the companies in the database and returns companies who have 
-*** employees within the given range.                                  */
+  /** This function updates the company with correct parameters in the database 
+   * if it exists.  */
 
- static async numEmployeesFilter(min, max) {
+  static async update(body, handle) {
 
-  const results = await db.query(
-    `SELECT handle, name
-     FROM companies
-     WHERE num_employees BETWEEN $1 AND $2
-     ORDER BY name`,
-     [min, max]
-  );
-  return results.rows;
+      // There are two attributes on the Company class in camelCase but snake_case
+    // in the database and need to be converted before sent to the sqlForPartialUpdate
+    // function due to the way it constructs the SQL query.
 
-  }
+    let items = {};
 
-  static async update({query, values}) {
+    for (let k in body) {
+      if (k === "numEmployees") {
+        items["num_employees"] = body.numEmployees;
+      } else if (k === "logoURL") {
+        items["logo_url"] = body.logoURL;
+      } else {
+        items[k] = body[k];
+      }
+    }
 
-    let handle = await Company.get(values[values.length - 1]);
+    let table = 'companies';
+    let key = 'handle';
+
+    const {query, values} = sqlForPartialUpdate(table, items, key, handle)
 
     let result = await db.query(`${query}`, values);
 
     if (result.rows[0] === undefined) {
-      const err = new ExpressError(`Could not update company that does not exist: ${handle}`, 400);
-      throw err;
+      throw new ExpressError(`Could not update company that does not exist: ${handle}`, BAD_REQUEST_STATUS);
     }
 
     let company = await Company.get(result.rows[0].handle)
-
     return company;
-
   }
+
+  /** This function deletes an existing company */
 
   static async delete(handle) {
 

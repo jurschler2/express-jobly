@@ -4,31 +4,27 @@ const express = require("express");
 const Company = require("../models/company");
 const router = new express.Router();
 const ExpressError = require("../helpers/expressError");
-const sqlForPartialUpdate = require("../helpers/partialUpdate");
 const jsonschema = require("jsonschema");
 const companySchema = require("../schemas/companySchema.json");
 const companyUpdateSchema = require("../schemas/companyUpdateSchema.json");
+const {BAD_REQUEST_STATUS, CREATED_STATUS} = require("../config");
 
-/** Display list of companies */
+/** Returns a list of JSON objects of existing companies by all, search, min, or max parameters */
 
 router.get("/", async function(req, res, next) {
 
   try {
 
-    if (req.query.search) {
+    if (req.query.search || req.query.min_employees || req.query.max_employees) { 
 
-      let companies = await Company.search(req.query.search);
-      return res.json({companies});
-
-    } else if (req.query.min_employees || req.query.max_employees) { 
-
+      let search = req.query.search || '';
       let min = req.query.min_employees || 0;
       let max = req.query.max_employees || 2000000000;
 
       if (min > max) {
-        throw new ExpressError(`Minimum must be lower than maximum: ${min} is not less than ${max}`, 400)
+        throw new ExpressError(`Minimum must be lower than maximum: ${min} is not less than ${max}`, BAD_REQUEST_STATUS)
       }
-      let companies = await Company.numEmployeesFilter(min, max);
+      let companies = await Company.search(search, min, max);
       return res.json({companies});
 
     } else {
@@ -43,7 +39,7 @@ router.get("/", async function(req, res, next) {
 
 });
 
-/** Display a single company */
+/** Returns a JSON object of an existing company */
 
 router.get("/:handle", async function(req, res, next) {
 
@@ -56,7 +52,8 @@ router.get("/:handle", async function(req, res, next) {
 
 });
 
-/** Add a company */
+/** Add a company and validates against the company schema, and
+ * return a JSON object of the added company               */
 
 router.post("/", async function(req, res, next) {
 
@@ -66,19 +63,19 @@ router.post("/", async function(req, res, next) {
     if (!result.valid) {
 
       let listOfErrors = result.errors.map(error => error.stack);
-      let error = new ExpressError(listOfErrors, 400);
-      return next(error);
+      throw new ExpressError(listOfErrors, BAD_REQUEST_STATUS);
     }
 
     const company = await Company.create(req.body);
-    return res.json({company}, 201);
+    return res.json({company}, CREATED_STATUS);
 
   } catch (err) {
     return next(err);
   }
 });
 
-/** Update a company */
+/** Update/patch an existing company and validate against the update company schema then
+ * return a JSON object of the updated/patched company                                 */
 
 router.patch("/:handle", async function(req, res, next) {
 
@@ -89,40 +86,21 @@ router.patch("/:handle", async function(req, res, next) {
     if (!result.valid) {
 
       let listOfErrors = result.errors.map(error => error.stack);
-      let error = new ExpressError(listOfErrors, 400);
+      let error = new ExpressError(listOfErrors, BAD_REQUEST_STATUS);
       return next(error);
     }
 
     if (req.body.handle) {
       if (req.body.handle !== req.params.handle) {
-        throw new ExpressError(`You cannot change the company's handle`, 400)
+        throw new ExpressError(`You cannot change the company's handle`, BAD_REQUEST_STATUS)
       }
     }
-
   
     if (Object.keys(req.body).length === 0) {
-      throw new ExpressError(`You did not provide any updates`, 400)
+      throw new ExpressError(`You did not provide any updates`, BAD_REQUEST_STATUS)
     }
 
-    let items = {};
-
-    for (let k in req.body) {
-      if (k === "numEmployees") {
-        items["num_employees"] = req.body.numEmployees;
-      } else if (k === "logoURL") {
-        items["logo_url"] = req.body.logoURL;
-      } else {
-        items[k] = req.body[k];
-      }
-    }
-
-    let table = 'companies';
-    let key = 'handle';
-    let companyHandle = req.params.handle;
-
-    const update = sqlForPartialUpdate(table, items, key, companyHandle)
-    const company = await Company.update(update);
-
+    const company = await Company.update(req.body, req.params.handle);
     return res.json({company});
 
   } catch (err) {
@@ -130,7 +108,7 @@ router.patch("/:handle", async function(req, res, next) {
   }
 });
 
-/** delete a company */
+/** delete a company from the database and return a confirmation message */
 
 router.delete("/:handle", async function(req, res, next) {
 

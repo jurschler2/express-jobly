@@ -4,25 +4,37 @@ const db = require("../../db");
 const Company = require("../../models/company");
 const request = require("supertest");
 const app = require("../../app");
+const {NOT_FOUND_STATUS,
+       BAD_REQUEST_STATUS,
+       OK_STATUS,
+       CREATED_STATUS,
+       SERVER_ERROR_STATUS} = require("../../config");
 
 
 const testCompany1 = {
-                        "handle": "test",
-                        "name": "Test Name",
-                        "numEmployees": 10,
-                        "description": "Test description",
-                        "logoURL": "test.com"
+                        handle: "test",
+                        name: "Test Name",
+                        numEmployees: 10,
+                        description: "Test description",
+                        logoURL: "test.com"
+                      };
+const testCompany1Info = {
+                        handle: "test",
+                        name: "Test Name",
+                        numEmployees: 10,
+                        description: "Test description",
+                        logoURL: "test.com"
                       };
 const updateTestCompany1 = {
-                        "name": "New Test Name",
-                        "numEmployees": 50,
-                        "description": "Test description",
-                        "logoURL": "test.com"
+                        name: "New Test Name",
+                        numEmployees: 50,
+                        description: "Test description",
+                        logoURL: "test.com"
                       };
 
 const testCompany2 = {
-                        "handle": "test2",
-                        "name": "Test Company 2"
+                        handle: "test2",
+                        name: "Test Company 2"
                       };
 
 
@@ -41,14 +53,14 @@ describe("Tests all Companies Routes", function () {
 
       const response = await request(app).get("/companies");
 
-      expect(response.statusCode).toBe(200);
+      expect(response.statusCode).toBe(OK_STATUS);
       expect(response.body).toEqual({
-        "companies" : [ {
-                          "handle": "test",
-                          "name": "Test Name",
-                          "numEmployees": 10,
-                          "description": "Test description",
-                          "logoURL": "test.com"
+        companies : [ {
+                          handle: "test",
+                          name: "Test Name",
+                          numEmployees: 10,
+                          description: "Test description",
+                          logoURL: "test.com"
                         } ]
       });
 
@@ -58,11 +70,11 @@ describe("Tests all Companies Routes", function () {
 
       const response = await request(app).get("/companies?search=test");
 
-      expect(response.statusCode).toBe(200);
+      expect(response.statusCode).toBe(OK_STATUS);
       expect(response.body).toEqual({
-        "companies" : [ {
-                          "handle": "test",
-                          "name": "Test Name"
+        companies : [ {
+                          handle: "test",
+                          name: "Test Name"
                         } ]
       });
 
@@ -72,7 +84,7 @@ describe("Tests all Companies Routes", function () {
 
       const response = await request(app).get("/companies?search=notreal");
 
-      expect(response.statusCode).toBe(200);
+      expect(response.statusCode).toBe(OK_STATUS);
       expect(response.body).toEqual({
         "companies" : []
       });
@@ -83,11 +95,11 @@ describe("Tests all Companies Routes", function () {
 
       const response = await request(app).get("/companies?min_employees=5");
 
-      expect(response.statusCode).toBe(200);
+      expect(response.statusCode).toBe(OK_STATUS);
       expect(response.body).toEqual({
-        "companies" : [ {
-                          "handle": "test",
-                          "name": "Test Name"
+        companies : [ {
+                          handle: "test",
+                          name: "Test Name"
                         } ]
       });
 
@@ -97,9 +109,9 @@ describe("Tests all Companies Routes", function () {
 
       const response = await request(app).get("/companies?min_employees=50");
 
-      expect(response.statusCode).toBe(200);
+      expect(response.statusCode).toBe(OK_STATUS);
       expect(response.body).toEqual({
-        "companies" : []
+        companies : []
       });
 
     });
@@ -108,11 +120,11 @@ describe("Tests all Companies Routes", function () {
 
       const response = await request(app).get("/companies?max_employees=50");
 
-      expect(response.statusCode).toBe(200);
+      expect(response.statusCode).toBe(OK_STATUS);
       expect(response.body).toEqual({
-        "companies" : [ {
-                          "handle": "test",
-                          "name": "Test Name"
+        companies : [ {
+                          handle: "test",
+                          name: "Test Name"
                         } ]
       });
 
@@ -122,9 +134,9 @@ describe("Tests all Companies Routes", function () {
 
       const response = await request(app).get("/companies?max_employees=5");
 
-      expect(response.statusCode).toBe(200);
+      expect(response.statusCode).toBe(OK_STATUS);
       expect(response.body).toEqual({
-        "companies" : []
+        companies : []
       });
 
     });
@@ -133,11 +145,11 @@ describe("Tests all Companies Routes", function () {
 
       const response = await request(app).get("/companies?min_employees=5&max_employees=50");
 
-      expect(response.statusCode).toBe(200);
+      expect(response.statusCode).toBe(OK_STATUS);
       expect(response.body).toEqual({
-        "companies" : [ {
-                          "handle": "test",
-                          "name": "Test Name"
+        companies : [ {
+                          handle: "test",
+                          name: "Test Name"
                         } ]
       });
 
@@ -147,9 +159,9 @@ describe("Tests all Companies Routes", function () {
 
       const response = await request(app).get("/companies?min_employees=5&max_employees=6");
 
-      expect(response.statusCode).toBe(200);
+      expect(response.statusCode).toBe(OK_STATUS);
       expect(response.body).toEqual({
-        "companies" : []
+          companies : []
       });
 
     });
@@ -158,10 +170,10 @@ describe("Tests all Companies Routes", function () {
 
       const response = await request(app).get("/companies?min_employees=50&max_employees=5");
 
-      expect(response.statusCode).toBe(400);
+      expect(response.statusCode).toBe(BAD_REQUEST_STATUS);
       expect(response.body).toEqual({
-        "status": 400,
-        "message": "Minimum must be lower than maximum: 50 is not less than 5"
+         status : 400,
+         message : "Minimum must be lower than maximum: 50 is not less than 5"
       });
 
     });
@@ -174,14 +186,14 @@ describe("Tests all Companies Routes", function () {
 
       const response = await request(app).get("/companies/test");
 
-      expect(response.statusCode).toBe(200);
+      expect(response.statusCode).toBe(OK_STATUS);
       expect(response.body).toEqual({
-        "company" : {
-                      "handle": "test",
-                      "name": "Test Name",
-                      "numEmployees": 10,
-                      "description": "Test description",
-                      "logoURL": "test.com"
+        company : {
+                      handle: "test",
+                      name: "Test Name",
+                      numEmployees: 10,
+                      description: "Test description",
+                      logoURL: "test.com"
                     }
       });
 
@@ -191,7 +203,7 @@ describe("Tests all Companies Routes", function () {
 
       const response = await request(app).get("/companies/notreal");
 
-      expect(response.statusCode).toBe(400);
+      expect(response.statusCode).toBe(NOT_FOUND_STATUS);
 
     });
 
@@ -203,14 +215,14 @@ describe("Tests all Companies Routes", function () {
 
       const response = await request(app).post("/companies").send(testCompany2);
 
-      expect(response.statusCode).toBe(201);
+      expect(response.statusCode).toBe(CREATED_STATUS);
       expect(response.body).toEqual({
-        "company" : {
-                      "handle": "test2",
-                      "name": "Test Company 2",
-                      "description": null,
-                      "numEmployees": null,
-                      "logoURL": null
+        company : {
+                      handle: "test2",
+                      name: "Test Company 2",
+                      description: null,
+                      numEmployees: null,
+                      logoURL: null
                     }
       });
 
@@ -220,7 +232,7 @@ describe("Tests all Companies Routes", function () {
 
       const response = await request(app).post("/companies").send(testCompany1);
 
-      expect(response.statusCode).toBe(500);
+      expect(response.statusCode).toBe(SERVER_ERROR_STATUS);
       
     });
 
@@ -232,14 +244,14 @@ describe("Tests all Companies Routes", function () {
 
       const response = await request(app).patch("/companies/test").send(updateTestCompany1);
 
-      expect(response.statusCode).toBe(200);
+      expect(response.statusCode).toBe(OK_STATUS);
       expect(response.body).toEqual({
-        "company" : {
-                      "handle": "test",
-                      "name": "New Test Name",
-                      "description": "Test description",
-                      "logoURL": "test.com",
-                      "numEmployees": 50
+        company : {
+                      handle: "test",
+                      name: "New Test Name",
+                      description: "Test description",
+                      logoURL: "test.com",
+                      numEmployees: 50
                     }
       });
 
@@ -249,10 +261,10 @@ describe("Tests all Companies Routes", function () {
 
       const response = await request(app).patch("/companies/notreal").send(updateTestCompany1);
 
-      expect(response.statusCode).toBe(400);
+      expect(response.statusCode).toBe(BAD_REQUEST_STATUS);
       expect(response.body).toEqual({
-              "status": 400,
-              "message": "No such company: notreal"
+              status: 400,
+              message: "Could not update company that does not exist: notreal"
       });
     });
 
@@ -264,10 +276,10 @@ describe("Tests all Companies Routes", function () {
 
       const response = await request(app).delete("/companies/test");
 
-      expect(response.statusCode).toBe(200);
+      expect(response.statusCode).toBe(OK_STATUS);
       expect(response.body).toEqual(
         {
-          "message": "test deleted"
+          message: "test deleted"
         }
       );
 
@@ -277,10 +289,10 @@ describe("Tests all Companies Routes", function () {
 
       const response = await request(app).delete("/companies/notreal");
 
-      expect(response.statusCode).toBe(400);
+      expect(response.statusCode).toBe(NOT_FOUND_STATUS);
       expect(response.body).toEqual({
-              "status": 400,
-              "message": "No such company: notreal"
+              status: NOT_FOUND_STATUS,
+              message: "No such company: notreal"
       });
     });
 

@@ -20,8 +20,19 @@ if (process.env.NODE_ENV === "test") {
   DB_URI = process.env.DATABASE_URL || "jobly";
 }
 
+const NOT_FOUND_STATUS = 404;
+const BAD_REQUEST_STATUS = 400;
+const OK_STATUS = 200;
+const CREATED_STATUS = 201;
+const SERVER_ERROR_STATUS = 500;
+
 module.exports = {
   SECRET_KEY,
   PORT,
-  DB_URI
+  DB_URI,
+  NOT_FOUND_STATUS,
+  BAD_REQUEST_STATUS,
+  OK_STATUS,
+  CREATED_STATUS,
+  SERVER_ERROR_STATUS,
 };

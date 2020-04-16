@@ -14,7 +14,9 @@ app.use(express.json());
 app.use(morgan("tiny"));
 
 const companiesRoutes = require("./routes/companies");
+const jobsRoutes = require("./routes/jobs");
 app.use("/companies", companiesRoutes);
+app.use("/jobs", jobsRoutes);
 
 /** 404 handler */
 
