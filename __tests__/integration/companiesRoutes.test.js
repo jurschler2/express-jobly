@@ -6,12 +6,32 @@ const request = require("supertest");
 const app = require("../../app");
 
 
+const testCompany1 = {
+                        "handle": "test",
+                        "name": "Test Name",
+                        "numEmployees": 10,
+                        "description": "Test description",
+                        "logoURL": "test.com"
+                      };
+const updateTestCompany1 = {
+                        "name": "New Test Name",
+                        "numEmployees": 50,
+                        "description": "Test description",
+                        "logoURL": "test.com"
+                      };
+
+const testCompany2 = {
+                        "handle": "test2",
+                        "name": "Test Company 2"
+                      };
+
+
 describe("Tests all Companies Routes", function () {
   beforeEach(async function() {
 
       await db.query(`DELETE FROM companies`);
 
-      let company = await Company.create('test', 'Test Name', 10, 'Test description', 'test.com');
+      let company = await Company.create(testCompany1);
 
   });
 
@@ -30,6 +50,118 @@ describe("Tests all Companies Routes", function () {
                           "description": "Test description",
                           "logoURL": "test.com"
                         } ]
+      });
+
+    });
+
+    test("Can search for something that exists and see correct results", async function() {
+
+      const response = await request(app).get("/companies?search=test");
+
+      expect(response.statusCode).toBe(200);
+      expect(response.body).toEqual({
+        "companies" : [ {
+                          "handle": "test",
+                          "name": "Test Name"
+                        } ]
+      });
+
+    });
+
+    test("Can search for something that does not exist and see correct results", async function() {
+
+      const response = await request(app).get("/companies?search=notreal");
+
+      expect(response.statusCode).toBe(200);
+      expect(response.body).toEqual({
+        "companies" : []
+      });
+
+    });
+
+    test("Can filter by a minimum number of employees and see correct results", async function() {
+
+      const response = await request(app).get("/companies?min_employees=5");
+
+      expect(response.statusCode).toBe(200);
+      expect(response.body).toEqual({
+        "companies" : [ {
+                          "handle": "test",
+                          "name": "Test Name"
+                        } ]
+      });
+
+    });
+
+    test("Can filter by a minimum number of employees that is too high and see correct results", async function() {
+
+      const response = await request(app).get("/companies?min_employees=50");
+
+      expect(response.statusCode).toBe(200);
+      expect(response.body).toEqual({
+        "companies" : []
+      });
+
+    });
+
+    test("Can filter by a maximum number of employees and see correct results", async function() {
+
+      const response = await request(app).get("/companies?max_employees=50");
+
+      expect(response.statusCode).toBe(200);
+      expect(response.body).toEqual({
+        "companies" : [ {
+                          "handle": "test",
+                          "name": "Test Name"
+                        } ]
+      });
+
+    });
+
+    test("Can filter by a maximum number of employees that is too low and see correct results", async function() {
+
+      const response = await request(app).get("/companies?max_employees=5");
+
+      expect(response.statusCode).toBe(200);
+      expect(response.body).toEqual({
+        "companies" : []
+      });
+
+    });
+
+    test("Can filter by a minimum and maximum number of employees and see correct results", async function() {
+
+      const response = await request(app).get("/companies?min_employees=5&max_employees=50");
+
+      expect(response.statusCode).toBe(200);
+      expect(response.body).toEqual({
+        "companies" : [ {
+                          "handle": "test",
+                          "name": "Test Name"
+                        } ]
+      });
+
+    });
+
+    test("Can filter by a minimum and maximum number of employees that is too constrained and see correct results", async function() {
+
+      const response = await request(app).get("/companies?min_employees=5&max_employees=6");
+
+      expect(response.statusCode).toBe(200);
+      expect(response.body).toEqual({
+        "companies" : []
+      });
+
+    });
+
+    test("Filtering by a minimum that is higher than a maximum yields an error", async function() {
+
+      const response = await request(app).get("/companies?min_employees=50&max_employees=5");
+
+      expect(response.statusCode).toBe(400);
+      expect(response.body).toEqual({
+        "status": 400,
+        "message": "Minimum must be lower than maximum: 50 is not less than 5"
       });
 
     });
@@ -54,17 +186,101 @@ describe("Tests all Companies Routes", function () {
       });
 
     });
+
     test("Will not see a company that does not exist", async function() {
 
       const response = await request(app).get("/companies/notreal");
 
-      expect(response.statusCode).toBe(404);
+      expect(response.statusCode).toBe(400);
 
     });
 
   });
 
+  describe("POST /companies", function() {
 
+    test("Can create a company", async function() {
+
+      const response = await request(app).post("/companies").send(testCompany2);
+
+      expect(response.statusCode).toBe(201);
+      expect(response.body).toEqual({
+        "company" : {
+                      "handle": "test2",
+                      "name": "Test Company 2",
+                      "description": null
+                    }
+      });
+
+    });
+
+    test("Cannot create an already existing company", async function() {
+
+      const response = await request(app).post("/companies").send(testCompany1);
+
+      expect(response.statusCode).toBe(500);
+      
+    });
+
+  });
+
+  describe("PATCH /companies/test", function() {
+
+    test("Can update an existing company", async function() {
+
+      const response = await request(app).patch("/companies/test").send(updateTestCompany1);
+
+      expect(response.statusCode).toBe(200);
+      expect(response.body).toEqual({
+        "company" : {
+                      "handle": "test",
+                      "name": "New Test Name",
+                      "description": "Test description"
+                    }
+      });
+
+    });
+
+    test("Cannot update a nonexistent company", async function() {
+
+      const response = await request(app).patch("/companies/notreal").send(updateTestCompany1);
+
+      expect(response.statusCode).toBe(400);
+      expect(response.body).toEqual({
+              "status": 400,
+              "message": "No such company: notreal"
+      });
+    });
+
+  });
+
+  describe("Delete /companies/test", function() {
+
+    test("Can delete an existing company", async function() {
+
+      const response = await request(app).delete("/companies/test");
+
+      expect(response.statusCode).toBe(200);
+      expect(response.body).toEqual(
+        {
+          "message": "test deleted"
+        }
+      );
+
+    });
+
+    test("Cannot delete a nonexistent company", async function() {
+
+      const response = await request(app).delete("/companies/notreal");
+
+      expect(response.statusCode).toBe(400);
+      expect(response.body).toEqual({
+              "status": 400,
+              "message": "No such company: notreal"
+      });
+    });
+
+  });
 
 });
 

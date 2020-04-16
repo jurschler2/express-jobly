@@ -1,6 +1,7 @@
 /** Company for Jobly */
 
 const db = require("../db");
+const ExpressError = require("../helpers/expressError");
 
 /** Company */
 
@@ -43,10 +44,8 @@ class Company {
 
     const company = results.rows[0];
 
-    if (company === undefined) {
-      const err = new Error(`No such company: ${handle}`);
-      err.status = 404;
-      throw err;
+    if (results.rows.length === 0) {
+      throw new ExpressError(`No such company: ${handle}`, 400);
     }
 
     return new Company(company);
@@ -54,7 +53,9 @@ class Company {
 
   /** create a company. */
   
-  static async create(handle, name, numEmployees, description, logoURL) {
+  static async create({handle, name, numEmployees, description, logoURL}) {
+    
+    
     const result = await db.query(
       `INSERT INTO companies (handle, name, num_employees, description, logo_url)
             VALUES ($1, $2, $3, $4, $5)
@@ -63,8 +64,7 @@ class Company {
     );
 
     if (result.rows[0].length === 0) {
-      const err = new Error(`Could not create company: ${handle}`);
-      throw err;
+      throw new ExpressError(`Could not create company: ${handle}`, 400);
     }
 
     return new Company(result.rows[0]);
@@ -102,9 +102,32 @@ class Company {
 
   }
 
+  static async update({query, values}) {
 
+    await Company.get(values[values.length - 1]);
+
+    let result = await db.query(`${query}`, values);
+
+    if (result.rows[0] === undefined) {
+      const err = new ExpressError(`Could not update company that does not exist: ${handle}`, 400);
+      throw err;
+    }
+    return new Company(result.rows[0]);
+
+  }
+
+  static async delete(handle) {
+
+    let company = await Company.get(handle);
+
+    const result = await db.query(`DELETE FROM companies
+                                   WHERE handle = $1
+                                   RETURNING handle`,
+                                   [company.handle]);
+
+      return result.rows[0];
+    }
   
-
 }
 
 
