@@ -8,16 +8,16 @@ const {BAD_REQUEST_STATUS, NOT_FOUND_STATUS} = require("../config");
 /** Job */
 
 class Job {
-  
+
   /** find all jobs. */
 
   static async all() {
     const results = await db.query(
       `SELECT id,
-              title, 
-              salary,  
-              equity, 
-              company_handle, 
+              title,
+              salary,
+              equity,
+              company_handle,
               date_posted
        FROM jobs
        ORDER BY title`
@@ -30,10 +30,10 @@ class Job {
   static async get(id) {
     const results = await db.query(
       `SELECT id,
-              title, 
-              salary,  
-              equity, 
-              company_handle, 
+              title,
+              salary,
+              equity,
+              company_handle,
               date_posted
        FROM jobs
        WHERE id = $1`,
@@ -42,18 +42,19 @@ class Job {
 
     const job = results.rows[0];
 
-    if (results.rows.length === 0) {
+    if (!job) {
       throw new ExpressError(`No such job: ${id}`, NOT_FOUND_STATUS);
     }
 
     return job;
   }
 
+
   /** create a job. */
-  
+
   static async create({title, salary, equity, company_handle}) {
-    
-    
+
+
     const result = await db.query(
       `INSERT INTO jobs (title, salary, equity, company_handle)
             VALUES ($1, $2, $3, $4)
@@ -84,7 +85,7 @@ class Job {
 
   }
 
-  /** This function updates the company with correct parameters in the database 
+  /** This function updates the company with correct parameters in the database
    * if it exists.  */
 
   static async update(body, id) {

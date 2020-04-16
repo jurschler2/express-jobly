@@ -193,11 +193,20 @@ describe("Tests all Companies Routes", function () {
                       name: "Test Name",
                       numEmployees: 10,
                       description: "Test description",
-                      logoURL: "test.com"
+                      logoURL: "test.com",
+                      jobs: [{
+                        "date_posted": null,
+                        "equity": null,
+                        "id": null,
+                        "salary": null,
+                        "title": null
+                      }]
                     }
       });
 
     });
+
+
 
     test("Will not see a company that does not exist", async function() {
 
@@ -233,7 +242,7 @@ describe("Tests all Companies Routes", function () {
       const response = await request(app).post("/companies").send(testCompany1);
 
       expect(response.statusCode).toBe(SERVER_ERROR_STATUS);
-      
+
     });
 
   });
@@ -251,7 +260,14 @@ describe("Tests all Companies Routes", function () {
                       name: "New Test Name",
                       description: "Test description",
                       logoURL: "test.com",
-                      numEmployees: 50
+                      numEmployees: 50,
+                      jobs: [{
+                        "date_posted": null,
+                        "equity": null,
+                        "id": null,
+                        "salary": null,
+                        "title": null
+                      }]
                     }
       });
 

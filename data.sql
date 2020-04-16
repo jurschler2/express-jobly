@@ -26,7 +26,7 @@ INSERT INTO companies
          ('gene', 'Genentech', 1000, 'Makes cool bio stuff', 'http://genentech.com/genentech_logo');
 
 
-INSERT INTO jobs
-  VALUES (1, 'Software Engineer', 150000, .02, 'apple', current_timestamp),
-         (2, 'Accountant', 50000, 0, 'apple', current_timestamp),
-         (3, 'Chemist', 90000, .003, 'gene', current_timestamp)
+INSERT INTO jobs (title, salary, equity, company_handle)
+  VALUES ('Software Engineer', 150000, .02, 'apple'),
+         ('Accountant', 50000, 0, 'apple'),
+         ('Chemist', 90000, .003, 'gene')

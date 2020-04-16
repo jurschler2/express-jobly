@@ -20,10 +20,10 @@ class Company {
 
   static async all() {
     const results = await db.query(
-      `SELECT handle, 
-         name,  
-         num_employees AS "numEmployees", 
-         description, 
+      `SELECT handle,
+         name,
+         num_employees AS "numEmployees",
+         description,
          logo_url AS "logoURL"
        FROM companies
        ORDER BY handle`
@@ -33,31 +33,76 @@ class Company {
 
   /** get a company by handle. */
 
-  static async get(handle) {
+  // static async get(handle) {
+  //   const results = await db.query(
+  //     `SELECT handle,
+  //             name,
+  //             num_employees AS "numEmployees",
+  //             description,
+  //             logo_url AS "logoURL"
+  //     FROM companies WHERE handle = $1`,
+  //     [handle]
+  //   );
+
+  //   const company = results.rows[0];
+
+  //   if (results.rows.length === 0) {
+  //     throw new ExpressError(`No such company: ${handle}`, NOT_FOUND_STATUS);
+  //   }
+
+  //   return new Company(company);
+  // }
+
+  /** gets a company by handle and returns company data and jobs. */
+
+//   Update the following routes:
+
+// GET /companies/[handle]
+// This should return a single company found by its id. It should also return a key of jobs which is an array of jobs that belong to that company: {company: {...companyData, jobs: [job, ...]}}
+
+  static async get(company_handle) {
     const results = await db.query(
-      `SELECT handle, 
-              name,  
-              num_employees AS "numEmployees", 
-              description, 
-              logo_url AS "logoURL"
-      FROM companies WHERE handle = $1`,
-      [handle]
+      `SELECT c.handle,
+              c.name,
+              c.num_employees AS "numEmployees",
+              c.description,
+              c.logo_url AS "logoURL",
+              j.id,
+              j.title,
+              j.salary,
+              j.equity,
+              j.date_posted
+      FROM companies AS c
+      LEFT JOIN jobs AS j
+      ON c.handle = j.company_handle
+      WHERE c.handle = $1`,
+      [company_handle]
     );
 
-    const company = results.rows[0];
+    const companyWithJobs = results.rows;
 
     if (results.rows.length === 0) {
-      throw new ExpressError(`No such company: ${handle}`, NOT_FOUND_STATUS);
+      throw new ExpressError(`No such company: ${company_handle}`, NOT_FOUND_STATUS);
     }
 
-    return new Company(company);
-  }
+    let {name, handle, numEmployees, description, logoURL} = companyWithJobs[0];
+    let jobData = companyWithJobs.map(item => ({
+                id: item.id,
+                title: item.title,
+                salary: item.salary,
+                equity: item.equity,
+                date_posted: item.date_posted})
+    );
+
+    return {name, handle, numEmployees, description, logoURL, jobs: jobData};
+
+  };
 
   /** create a company. */
-  
+
   static async create({handle, name, numEmployees, description, logoURL}) {
-    
-    
+
+
     const result = await db.query(
       `INSERT INTO companies (handle, name, num_employees, description, logo_url)
             VALUES ($1, $2, $3, $4, $5)
@@ -88,7 +133,7 @@ class Company {
 
   }
 
-  /** This function updates the company with correct parameters in the database 
+  /** This function updates the company with correct parameters in the database
    * if it exists.  */
 
   static async update(body, handle) {
@@ -137,7 +182,7 @@ class Company {
 
       return result.rows[0];
     }
-  
+
 }
 
 
