@@ -208,7 +208,9 @@ describe("Tests all Companies Routes", function () {
         "company" : {
                       "handle": "test2",
                       "name": "Test Company 2",
-                      "description": null
+                      "description": null,
+                      "numEmployees": null,
+                      "logoURL": null
                     }
       });
 
@@ -235,7 +237,9 @@ describe("Tests all Companies Routes", function () {
         "company" : {
                       "handle": "test",
                       "name": "New Test Name",
-                      "description": "Test description"
+                      "description": "Test description",
+                      "logoURL": "test.com",
+                      "numEmployees": 50
                     }
       });
 

@@ -59,7 +59,7 @@ class Company {
     const result = await db.query(
       `INSERT INTO companies (handle, name, num_employees, description, logo_url)
             VALUES ($1, $2, $3, $4, $5)
-            RETURNING handle, name, num_employees, description, logo_url`,
+            RETURNING handle, name, num_employees AS "numEmployees", description, logo_url AS "logoURL"`,
       [handle, name, numEmployees, description, logoURL]
     );
 
@@ -104,7 +104,7 @@ class Company {
 
   static async update({query, values}) {
 
-    await Company.get(values[values.length - 1]);
+    let handle = await Company.get(values[values.length - 1]);
 
     let result = await db.query(`${query}`, values);
 
@@ -112,7 +112,10 @@ class Company {
       const err = new ExpressError(`Could not update company that does not exist: ${handle}`, 400);
       throw err;
     }
-    return new Company(result.rows[0]);
+
+    let company = await Company.get(result.rows[0].handle)
+
+    return company;
 
   }
 
