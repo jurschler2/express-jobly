@@ -5,6 +5,7 @@ const express = require("express");
 const ExpressError = require("./helpers/expressError");
 
 const morgan = require("morgan");
+const { authenticateJWT } = require("./middleware/authorizations");
 
 const app = express();
 
@@ -13,12 +14,17 @@ app.use(express.json());
 // add logging system
 app.use(morgan("tiny"));
 
+// get auth token for all routes
+app.use(authenticateJWT);
+
 const companiesRoutes = require("./routes/companies");
 const jobsRoutes = require("./routes/jobs");
 const usersRoutes = require("./routes/users");
+const authRoutes = require("./routes/auth");
 app.use("/companies", companiesRoutes);
 app.use("/jobs", jobsRoutes);
 app.use("/users", usersRoutes);
+app.use(authRoutes);
 
 
 /** 404 handler */

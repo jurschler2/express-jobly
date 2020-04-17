@@ -7,10 +7,11 @@ const ExpressError = require("../helpers/expressError");
 const jsonschema = require("jsonschema");
 const {BAD_REQUEST_STATUS, CREATED_STATUS} = require("../config");
 const { validateCompany, validateUpdateCompany } = require("../middleware/companies.validation");
+const { ensureLoggedIn, ensureAdmin } = require("../middleware/authorizations");
 
 /** Returns a list of JSON objects of existing companies by all, search, min, or max parameters */
 
-router.get("/", async function(req, res, next) {
+router.get("/", ensureLoggedIn, async function(req, res, next) {
 
   try {
 
@@ -40,7 +41,7 @@ router.get("/", async function(req, res, next) {
 
 /** Returns a JSON object of an existing company & its jobs */
 
-router.get("/:handle", async function(req, res, next) {
+router.get("/:handle", ensureLoggedIn, async function(req, res, next) {
 
   try {
     let company = await Company.get(req.params.handle);
@@ -54,7 +55,7 @@ router.get("/:handle", async function(req, res, next) {
 /** Add a company and validates against the company schema, and
  * return a JSON object of the added company               */
 
-router.post("/", validateCompany, async function(req, res, next) {
+router.post("/", ensureAdmin, validateCompany, async function(req, res, next) {
   try {
     const company = await Company.create(req.body);
     return res.json({company}, CREATED_STATUS);
@@ -67,7 +68,7 @@ router.post("/", validateCompany, async function(req, res, next) {
 /** Update/patch an existing company and validate against the update company schema then
  * return a JSON object of the updated/patched company                                 */
 
-router.patch("/:handle", validateUpdateCompany, async function(req, res, next) {
+router.patch("/:handle", ensureAdmin, validateUpdateCompany, async function(req, res, next) {
   try {
 
     if (req.body.handle) {
@@ -90,7 +91,7 @@ router.patch("/:handle", validateUpdateCompany, async function(req, res, next) {
 
 /** delete a company from the database and return a confirmation message */
 
-router.delete("/:handle", async function(req, res, next) {
+router.delete("/:handle", ensureAdmin, async function(req, res, next) {
 
   try {
 

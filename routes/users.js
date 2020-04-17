@@ -5,7 +5,9 @@ const User = require("../models/user");
 const router = new express.Router();
 const ExpressError = require("../helpers/expressError");
 const { validateUser, validateUpdateUser } = require("../middleware/users.validation");
-const {BAD_REQUEST_STATUS, CREATED_STATUS} = require("../config");
+const {BAD_REQUEST_STATUS, CREATED_STATUS, SECRET_KEY} = require("../config");
+const jwt = require("jsonwebtoken");
+const { ensureCorrectUser } = require("../middleware/authorizations"); 
 
 /** Returns a list of JSON objects of existing users */
 
@@ -46,7 +48,12 @@ router.get("/:username", async function(req, res, next) {
 router.post("/", validateUser, async function(req, res, next) {
   try {
     const user = await User.create(req.body);
-    return res.json({user}, CREATED_STATUS);
+    const adminStatus = await User.isAdmin(user.username);
+
+    let payload = { username: user.username, adminStatus };  
+    let token = jwt.sign(payload, SECRET_KEY);
+
+    return res.json({token}, CREATED_STATUS);
 
   } catch (err) {
     return next(err);
@@ -58,7 +65,7 @@ router.post("/", validateUser, async function(req, res, next) {
  * It returns JSON of {user: userData}
  */
 
-router.patch("/:username", validateUpdateUser, async function(req, res, next) {
+router.patch("/:username", ensureCorrectUser, validateUpdateUser, async function(req, res, next) {
 
   try {
 
@@ -84,7 +91,7 @@ router.patch("/:username", validateUpdateUser, async function(req, res, next) {
  * It returns JSON of { message: "user deleted" }
  */
 
-router.delete("/:username", async function(req, res, next) {
+router.delete("/:username", ensureCorrectUser, async function(req, res, next) {
 
   try {
 

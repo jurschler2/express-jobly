@@ -5,11 +5,12 @@ const Job = require("../models/job");
 const router = new express.Router();
 const ExpressError = require("../helpers/expressError");
 const { validateJob, validateUpdateJob } = require("../middleware/jobs.validation");
+const { ensureLoggedIn, ensureAdmin } = require("../middleware/authorizations");
 const {BAD_REQUEST_STATUS, CREATED_STATUS} = require("../config");
 
 /** Returns a list of JSON objects of existing jobs by all, search, min parameters */
 
-router.get("/", async function(req, res, next) {
+router.get("/", ensureLoggedIn, async function(req, res, next) {
 
   try {
 
@@ -42,7 +43,7 @@ router.get("/", async function(req, res, next) {
  * It should return JSON of {job: jobData}
  */
 
-router.get("/:id", async function(req, res, next) {
+router.get("/:id", ensureLoggedIn, async function(req, res, next) {
   try {
     const id = req.params.id;
     const job = await Job.get(id);
@@ -57,7 +58,7 @@ router.get("/:id", async function(req, res, next) {
 /**
  * This route creates a new job and returns JSON of {job: jobData}
  */
-router.post("/",validateJob, async function(req, res, next) {
+router.post("/", ensureAdmin, validateJob, async function(req, res, next) {
   try {
     const job = await Job.create(req.body);
     return res.json({job}, CREATED_STATUS);
@@ -72,7 +73,7 @@ router.post("/",validateJob, async function(req, res, next) {
  * It returns JSON of {job: jobData}
  */
 
-router.patch("/:id", validateUpdateJob, async function(req, res, next) {
+router.patch("/:id", ensureAdmin, validateUpdateJob, async function(req, res, next) {
 
   try {
 
@@ -98,7 +99,7 @@ router.patch("/:id", validateUpdateJob, async function(req, res, next) {
  * It returns JSON of { message: "Job deleted" }
  */
 
-router.delete("/:id", async function(req, res, next) {
+router.delete("/:id", ensureAdmin, async function(req, res, next) {
 
   try {
 

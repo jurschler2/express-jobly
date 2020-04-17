@@ -3,7 +3,12 @@
 const db = require("../db");
 const ExpressError = require("../helpers/expressError");
 const sqlForPartialUpdate = require("../helpers/partialUpdate");
-const {BAD_REQUEST_STATUS, NOT_FOUND_STATUS} = require("../config");
+const {BAD_REQUEST_STATUS, NOT_FOUND_STATUS, BCRYPT_WORK_FACTOR} = require("../config");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+
+
+
 
 /** User */
 
@@ -51,13 +56,13 @@ class User {
 
   static async create({username, password, first_name, last_name, email, photo_url}) {
 
-    // To import bcrypt and hash password
-    let hashedPassword = password;
+    
+    const hashedPassword = await bcrypt.hash(password, BCRYPT_WORK_FACTOR);
 
     const result = await db.query(
       `INSERT INTO users (username, password, first_name, last_name, email, photo_url)
             VALUES ($1, $2, $3, $4, $5, $6)
-            RETURNING username, password, first_name, last_name, email, photo_url`,
+            RETURNING username, first_name, last_name, email, photo_url`,
       [username, hashedPassword, first_name, last_name, email, photo_url]
     );
 
@@ -105,6 +110,38 @@ class User {
     return result.rows[0];
     }
 
+  /** Authenticate: is this username/password valid? Returns boolean. */
+
+  static async authenticate(username, password) { 
+
+    const result = await db.query(
+      `SELECT password FROM users
+        WHERE username = $1`,
+        [username]
+    );
+    
+      let user = result.rows[0];
+      return user && await bcrypt.compare(password, user.password);
+    }
+  
+  /** Return user admin privilege status */
+
+  static async isAdmin(username) {
+
+    const result = await db.query(
+      `SELECT is_admin FROM users
+        WHERE username = $1`,
+        [username]
+    );
+
+    let user = result.rows[0];
+    if (!user) {
+      throw new ExpressError(`No such user: ${username}`, BAD_REQUEST_STATUS);
+    }
+    return user.is_admin;
+    
+  }
+  
 }
 
 module.exports = User;
